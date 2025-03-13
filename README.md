@@ -1,0 +1,427 @@
+# Sommaire
+
+## 
+- [Stack ELK (Elasticsearch, Logstash, Kibana)](#stack-elk-elasticsearch-logstash-kibana)
+    - [Prérequis](#prérequis)
+        - [OpenJDK](#openjdk)
+            - [Installation](#installer-openjdk)
+            - [Vérification](#vérification-de-linstallation)
+        - [Nginx](#nginx)
+            - [Installation](#installer-nginx)
+            - [Configuration du pare-feu](#configurer-le-pare-feu)
+            - [Vérification](#vérification-de-nginx)
+            - [Vérification de l'adresse publique](#vérification-de-ladresse-publique)
+    - [Installation de la Stack ELK](#stack-elk-installation)
+        - [Elasticsearch](#elasticsearch)
+            - [Ajout de la clé et du dépôt](#ajouter-la-clé-et-le-dépôt-delasticsearch)
+            - [Configuration](#configurer-elasticsearch)
+        - [Kibana](#kibana)
+            - [Installation et démarrage](#installer-et-démarrer-kibana)
+            - [Création d'un mot de passe crypté](#créer-un-mot-de-passe-crypté-pour-lauthentification-http)
+            - [Configuration de Nginx](#configurer-nginx-pour-accéder-à-kibana-via-un-domaine-sécurisé)
+            - [Activation du site dans Nginx](#activation-du-site-dans-nginx-avec-un-lien-symbolique)
+            - [Vérification de la syntaxe](#vérifier-la-syntaxe-de-la-nouvelle-configuration-nginx)
+            - [Rechargement et gestion du pare-feu](#recharger-nginx-et-gérer-le-pare-feu)
+            - [Accès à Kibana](#accéder-à-kibana)
+        - [Logstash](#logstash)
+            - [Installation](#installation-de-logstash)
+            - [Configuration](#configuration-de-logstash-pour-recevoir-des-données)
+            - [Vérification](#vérification-de-la-nouvelle-configuration-de-logstash)
+- [Suricata](#suricata)
+    - [Installation et Activation](#installation-et-activation-de-suricata)
+        - [Ajout du dépôt](#ajoutez-le-dépôt-logiciel-de-loisf-à-votre-système)
+        - [Installation du service](#installez-le-service-suricata)
+        - [Activation et redémarrage](#activez-et-redémarrez-le-service)
+        - [Vérification de l'état](#vérifiez-létat-du-service)
+    - [Configuration](#configuration-1)
+        - [Paramètres clés](#paramètres-clés-de-configuration)
+        - [Mise à jour des règles](#pour-récupérer-les-règles-mises-à-jour-auprès-de-fournisseurs-externes)
+        - [Test de la configuration](#pour-tester-la-configuration-en-mode-build)
+    - [Journaux](#journaux-logs)
+        - [Consultation des journaux](#consultez-les-journaux-de-suricata)
+        - [Génération d'une alerte de test](#générez-une-alerte-de-test-pour-vérifier-que-suricata-fonctionne)
+        - [Types de journaux](#types-de-journaux)
+    - [Signatures Suricata](#signatures-suricata)
+        - [Actions principales](#suricata-propose-quatre-actions-principales-pour-le-traitement-des-paquets)
+        - [Format de l'en-tête des signatures](#format-de-len-tête-des-signatures)
+    - [Règles Personnalisées](#règles-personnalisées---utilisation-de-testmynids)
+        - [Exemples de règles](#exemples-de-règles)
+
+# Stack ELK (Elasticsearch, Logstash, Kibana)
+
+La stack ELK est une solution puissante pour la gestion des logs, la recherche en temps réel et la visualisation de données. Elle est couramment utilisée pour centraliser les journaux de sécurité, mais elle est également efficace pour diverses applications analytiques.
+
+## Prérequis
+
+### OpenJDK
+
+La stack ELK repose sur Java, c'est pourquoi il est nécessaire d'installer OpenJDK.
+
+1. **Installer OpenJDK**  
+   On commence par installer la version par défaut d'OpenJDK, qui comprend le JRE (Java Runtime Environment) et le JDK (Java Development Kit).
+
+   ```bash
+   sudo apt install default-jre
+   sudo apt install default-jdk
+   ```
+
+2. **Vérification de l'installation**  
+   Pour s'assurer que l'installation d'OpenJDK a été correctement effectuée, on peut vérifier la version de `javac` :
+
+   ```bash
+   javac -version
+   ```
+
+### Nginx
+
+Nginx est utilisé comme un reverse proxy pour sécuriser l'accès à Kibana.
+
+1. **Installer Nginx**
+
+   ```bash
+   sudo apt install nginx
+   ```
+
+2. **Configurer le pare-feu**  
+   Pour permettre le trafic HTTP, on configure `ufw` (Uncomplicated Firewall) pour autoriser Nginx.
+
+   ```bash
+   sudo ufw app list
+   sudo ufw allow 'Nginx HTTP'
+   sudo ufw status
+   ```
+
+3. **Vérification de Nginx**
+
+   On s'assure ensuite que le service fonctionne correctement :
+
+   ```bash
+   systemctl status nginx
+   ```
+
+    ![alt text](<img/Install Nginx.png>)
+
+4. **Vérification de l'adresse publique**
+
+    La commande `curl -4 icanhazip.com` effectue une requête vers le site web `icanhazip.com` pour récupérer votre adresse IPv4 publique. Le flag `-4` force `curl` à utiliser IPv4 au lieu de l'IPv6, garantissant ainsi que l'adresse IP retournée soit une adresse IPv4.
+
+
+## Stack ELK Installation
+
+### Elasticsearch
+
+Elasticsearch est un moteur de recherche et d'analyse distribué, essentiel pour le stockage des données de logs. Il est nécessaire de l'installer et de le configurer pour interagir avec Kibana et Logstash.
+
+1. **Ajouter la clé et le dépôt d'Elasticsearch**
+
+   ```bash
+   curl -fsSL https://artifacts.elastic.co/GPG-KEY-elasticsearch | sudo apt-key add -
+   echo "deb https://artifacts.elastic.co/packages/7.x/apt stable main" | sudo tee -a /etc/apt/sources.list.d/elastic-7.x.list
+   sudo apt update
+   sudo apt install elasticsearch
+   ```
+
+2. **Configurer Elasticsearch** 
+
+   On modifie le fichier de configuration pour définir les paramètres réseau, comme `network.host`.
+
+   ```bash
+   sudo nano /etc/elasticsearch/elasticsearch.yml
+   sudo systemctl start elasticsearch
+   ```
+
+   Pour tester le service :
+
+   ```bash
+   curl -X GET "localhost:9200"
+   ```
+
+### Kibana
+
+Kibana offre une interface utilisateur graphique permettant de visualiser et d'analyser les données stockées dans Elasticsearch.
+
+1. **Installer et démarrer Kibana**
+
+   ```bash
+   sudo apt install kibana
+   sudo systemctl enable kibana
+   sudo systemctl start kibana
+   ```
+
+2. **Créer un mot de passe crypté pour l'authentification HTTP**
+
+    ```bash
+    echo "kibanaadmin:`openssl passwd -apr1`" | sudo tee -a /etc/nginx/htpasswd.users
+    ```
+
+    **`openssl passwd -apr1`** : Cette partie génère un mot de passe crypté avec l'algorithme `apr1` (utilisé pour le cryptage des mots de passe dans les fichiers `.htpasswd` pour l'authentification HTTP de base).
+    
+    **`echo "kibanaadmin:`openssl passwd -apr1`"`** : Crée une chaîne de texte avec le nom d'utilisateur `kibanaadmin` suivi du mot de passe crypté généré par `openssl`.
+
+    **`| sudo tee -a /etc/nginx/htpasswd.users`** : Utilise `tee` pour ajouter (avec `-a` pour "append") cette chaîne de texte dans le fichier `/etc/nginx/htpasswd.users`, qui contient les utilisateurs et mots de passe pour l'authentification HTTP de base via Nginx.
+
+2. **Configurer Nginx pour accéder à Kibana via un domaine sécurisé**
+
+   Nous avons configuré Nginx comme un reverse proxy pour Kibana, offrant ainsi un accès sécurisé par mot de passe.
+
+   ```bash
+   sudo nano /etc/nginx/sites-available/cloud-computing-g3.fr
+   ```
+
+
+    ```nginx
+    server {
+        listen 80;
+
+        server_name cloud-computing-g3.fr;
+
+        auth_basic "Restricted Access";
+        auth_basic_user_file /etc/nginx/htpasswd.users;
+
+        location / {
+            proxy_pass http://localhost:5601;
+            proxy_http_version 1.1;
+            proxy_set_header Upgrade $http_upgrade;
+            proxy_set_header Connection 'upgrade';
+            proxy_set_header Host $host;
+            proxy_cache_bypass $http_upgrade;
+        }
+    }
+    ```
+    On ajoute des directives pour proxy les demandes HTTP vers Kibana et sécuriser l'accès avec une authentification de base dans le fichier.
+
+3. **Activation du site dans Nginx avec un lien symbolique**
+
+    ```bash
+    sudo ln -s /etc/nginx/sites-available/cloud-computing-g3.fr /etc/nginx/sites-enabled/cloud-computing-g3.fr
+    ```
+
+    **`ln -s`** : Crée un lien symbolique (ou "symlink") entre deux fichiers ou répertoires. Cela permet de faire en sorte qu'un fichier ou répertoire apparaisse à un autre emplacement sans dupliquer les données.
+
+    **`/etc/nginx/sites-available/cloud-computing-g3.fr`** : C'est le fichier de configuration de Nginx qui contient les paramètres pour le serveur associé au domaine `cloud-computing-g3.fr`. Ce fichier est situé dans le répertoire `sites-available`, qui est un emplacement où sont stockées toutes les configurations possibles des sites pour Nginx.
+
+    **`/etc/nginx/sites-enabled/cloud-computing-g3.fr`** : C'est un lien symbolique qui pointe vers le fichier de configuration dans `sites-available`. Les fichiers dans `sites-enabled` sont ceux que Nginx utilise activement.
+
+3. **Vérifier la syntaxe de la nouvelle configuration Nginx**
+
+    ```bash
+    sudo nginx -t
+    ```
+
+    ![alt text](<img/Configure Nginx.png>)
+
+4. **Recharger Nginx et gérer le pare-feu**
+
+    ```bash
+    sudo systemctl reload nginx
+
+    sudo ufw allow 'Nginx Full'
+
+    sudo ufw delete allow 'Nginx HTTP'
+    ```
+
+
+5. **Accéder à Kibana**
+
+   Après avoir configuré Nginx, on peut accéder à Kibana via l'URL définie dans le fichier de configuration (ici http://cloud-computing-g3.fr/status ou http://localhost:5601).
+
+
+    ![alt text](<img/Kibana view.png>)
+
+### Logstash
+
+Logstash est l'outil de traitement de données de la stack ELK, qui permet d'injecter des données dans Elasticsearch.
+
+1. **Installation de Logstash**
+
+   ```bash
+   sudo apt install logstash
+   ```
+
+2. **Configuration de Logstash pour recevoir des données**
+
+   Logstash doit être configuré pour recevoir des logs de type Beats, qui sont envoyés par Suricata ou d'autres systèmes IDS/IPS.
+
+   Le fichier de configuration contient les instructions pour recevoir ces logs et les transmettre à Elasticsearch.
+
+   
+    ```bash
+    sudo touch /etc/logstash/conf.d/02-beats-input.conf
+    sudo vim /etc/logstash/conf.d/02-beats-input.conf
+    ```
+
+    ```nginx
+    input {
+        beats {
+            port => 5044
+        }
+    }
+    ```
+
+    ```bash
+    sudo touch /etc/logstash/conf.d/30-elasticsearch-output.conf
+    sudo vim /etc/logstash/conf.d/30-elasticsearch-output.conf
+    ```
+
+    ```nginx
+    output {
+        if [@metadata][pipeline] {
+            elasticsearch {
+                hosts => ["localhost:9200"]
+                manage_template => false
+                index => "%{[@metadata][beat]}-%{[@metadata][version]}-%{+YYYY.MM.dd}"
+                pipeline => "%{[@metadata][pipeline]}"
+            }
+        } else {
+            elasticsearch {
+                hosts => ["localhost:9200"]
+                manage_template => false
+                index => "%{[@metadata][beat]}-%{[@metadata][version]}-%{+YYYY.MM.dd}"
+            }
+        }
+    }
+    ```
+
+3. **Vérification de la nouvelle configuration de logstash**
+
+    ```bash
+    sudo -u logstash /usr/share/logstash/bin/logstash --path.settings /etc/logstash -t
+    ```
+
+    - `sudo -u logstash` : Cette partie de la commande exécute la commande suivante en tant qu'utilisateur `logstash`. La commande `sudo` permet à un utilisateur autorisé d'exécuter une commande en tant que superutilisateur ou un autre utilisateur, comme spécifié par l'option `-u`.
+
+    - `/usr/share/logstash/bin/logstash` : Il s'agit du chemin vers l'exécutable Logstash. Cela spécifie où se trouve le binaire Logstash sur le système.
+
+    - `--path.settings /etc/logstash` : Cette option spécifie le chemin vers le répertoire des paramètres pour Logstash. Le répertoire des paramètres contient généralement des fichiers de configuration que Logstash utilise pour déterminer son comportement et sa configuration.
+
+    - `-t` : Ce drapeau indique à Logstash de s'exécuter en mode test de configuration. Il vérifie les fichiers de configuration pour les erreurs de syntaxe sans démarrer réellement le processus Logstash. Cela est utile pour valider que vos fichiers de configuration sont corrects avant d'exécuter Logstash en production.
+
+    ![alt text](<img/Config logstash.png>)
+
+
+# SURICATA
+
+Suricata est un moteur open-source de détection des menaces réseau, capable d'effectuer la détection d'intrusions en temps réel (IDS), la prévention d'intrusions en ligne (IPS) et la surveillance de la sécurité réseau (NSM). Dans ce projet nous nous sommes amusé à installer et créer des alertes pour les différents tests disponibles sur : https://testmynids.org/
+
+## Installation et Activation de Suricata
+
+Ajoutez le dépôt logiciel de l'Open Information Security Foundation (OISF) à votre système :
+```bash
+sudo add-apt-repository ppa:oisf/suricata-stable
+```
+
+Installez le service Suricata :
+```bash
+sudo apt install suricata
+```
+
+Activez et redémarrez le service :
+```bash
+sudo systemctl restart suricata
+```
+
+Vérifiez l'état du service :
+```bash
+sudo systemctl status suricata.service
+```
+
+Arrêtez le service si nécessaire :
+```bash
+sudo systemctl stop suricata.service
+```
+
+## Configuration
+
+Déterminez l'interface réseau par défaut :
+```bash
+ip -p -j route show default
+```
+
+Le fichier de configuration de Suricata est situé à :
+```
+/etc/suricata/suricata.yaml
+```
+
+### Paramètres Clés de Configuration
+- **HOME_NET** : Définissez votre réseau interne (plages IP de votre réseau local).
+- **af-packet** : Configurez l'interface réseau par défaut pour Suricata.
+
+Pour récupérer les règles mises à jour auprès de fournisseurs externes :
+```bash
+sudo suricata-update
+```
+
+Pour tester la configuration en mode build :
+```bash
+sudo suricata -T -c /etc/suricata/suricata.yaml -v
+```
+
+### Journaux (Logs)
+
+Consultez les journaux de Suricata :
+```bash
+sudo tail -f /var/log/suricata/suricata.log
+```
+
+Générez une alerte de test pour vérifier que Suricata fonctionne :
+```bash
+curl http://testmynids.org/uid/index.html
+```
+
+### Types de Journaux
+- **Fast log :** Format de journal simple situé à `/var/log/suricata/fast.log`
+- **EVE log :** Journaux au format JSON pour une analyse détaillée. Utilisez `jq` pour filtrer les journaux :
+```bash
+jq 'select(.alert .category=="Potentially Bad Traffic")' /var/log/suricata/eve.json
+```
+
+Installez `jq` pour une meilleure analyse des journaux :
+```bash
+sudo apt install jq
+```
+
+## Signatures Suricata
+
+Suricata propose quatre actions principales pour le traitement des paquets :
+- **Pass :** Arrête l'analyse des paquets et permet le trafic sans générer d'alerte.
+- **Drop :** Arrête l'analyse des paquets, bloque le paquet et génère une alerte (mode IPS uniquement).
+- **Reject :** Similaire à `Drop`, mais envoie un paquet de réinitialisation TCP à l'expéditeur et au destinataire.
+- **Alert :** Génère une alerte sans bloquer le trafic.
+
+### Format de l'En-tête des Signatures
+```
+<PROTOCOL> <SOURCE IP> <SOURCE PORT> -> <DESTINATION IP> <DESTINATION PORT>
+```
+
+## Règles Personnalisées - Utilisation de testmynids
+
+Pour définir des règles personnalisées, mettez à jour le fichier de configuration de Suricata pour inclure vos chemins de règles (`default-rule-path` et `rule-files`).
+
+**Exemples de Règles :**
+
+Détecter le trafic HTTP contenant "Linux UID Test" dans l'URI :
+```
+alert http any any -> any any (msg:"Linux UID Test Detected"; content:"Linux UID Test"; http.uri; sid:1000001; rev:1;)
+```
+![alt text](img/LinuxUID.png)
+
+Détecter le trafic HTTP contenant l'en-tête "Authorization: Basic" :
+```
+alert http any any -> any any (msg:"Basic Authentication over Clear Text Detected"; content:"Authorization: Basic"; http.header; sid:1000002; rev:1;)
+```
+![alt text](img/AuthBasic.png)
+
+Détecter le trafic HTTP avec des agents utilisateurs liés à des logiciels malveillants :
+```
+alert http any any -> any any (msg:"Known Malware-Related User Agent Detected"; http.user_agent; content:"BlackSun"; classtype:trojan-activity; sid:1000003; rev:1;)
+```
+
+![alt text](img/trojan.png)
+
+
+Détecter et bloquer le trafic TLS avec des certificats malveillants connus :
+```
+reject tls any any -> any any (msg:"Known Bad CA Certificate Detected"; tls.cert_subject; content:"edellroot.badssl.com"; classtype:policy-violation; sid:1000008; rev:1;)
+```
+![alt text](img/BadCertificates.png)
+
