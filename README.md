@@ -298,6 +298,367 @@ Logstash est l'outil de traitement de données de la stack ELK, qui permet d'inj
 
     ![alt text](<img/Config logstash.png>)
 
+4. **Activation et lancement du service logstash**
+
+    ```bash
+    sudo systemctl start logstash
+    sudo systemctl enable logstash
+    ```
+
+### Beat
+
+L’Elastic Stack utilise plusieurs expéditeurs de données légers appelés Beats pour collecter des données de diverses sources et les transporter vers Logstash ou Elasticsearch. Nous allons voir comment installer Filebeat, Metricbeat, Packetbeat et Hearbeat.
+
+#### Filebeat
+Cet expéditeur de données permet de recueillir et d'expérdier les fichiers journaux.
+
+1. **Lancement de l'installation**
+
+```bash
+sudo apt install filebeat
+```
+
+2. **Configuration**
+
+```bash
+sudo vim /etc/filebeat/filebeat.yml
+```
+```bash
+...
+setup.kibana:
+
+  # Kibana Host
+  # Scheme and port can be left out and will be set to the default (http and 5601)
+  # In case you specify and additional path, the scheme is required: http://localhost:5601/path
+  # IPv6 addresses should always be defined as: https://[2001:db8::1]:5601
+  host: "localhost:5601"
+...
+#output.elasticsearch:
+# Array of hosts to connect to.
+#hosts: ["localhost:9200"]
+...
+output.logstash:
+  # The Logstash hosts
+  hosts: ["localhost:5044"]
+```
+
+3. **Configuration**
+
+Activez le module `system` sur le service filebeat.
+```bash
+sudo filebeat modules enable system
+```
+Vérifiez si le module `system` est activé.
+```bash
+sudo filebeat modules list
+```
+Configurer la redirection des journaux vers le service elasticsearch.
+```bash
+sudo filebeat setup --pipelines --modules system
+```
+
+```bash
+sudo filebeat setup --index-management -E output.logstash.enabled=false -E
+'output.elasticsearch.hosts=["localhost:9200"]'
+```
+
+```bash
+sudo filebeat setup -E output.logstash.enabled=false -E
+output.elasticsearch.hosts=['localhost:9200'] -E
+setup.kibana.host=localhost:5601
+```
+
+4. **Activation du service**
+```bash
+sudo systemctl start filebeat
+sudo systemctl enable filebeat
+```
+
+#### Metricbeat
+Ce deuxième expéditeur de données collecte des métriques sur les systèmes et les services.
+
+1. **Installation du service**
+
+```bash
+sudo apt-get install apt-transport-https
+sudo apt-get install metricbeat
+sudo service metricbeat start
+```
+
+2. **Configuration du service**
+Commenter ou décommenter les métriques dont vous avez besoin dans `/etc/metricbeat/modules.d/system.yml`.
+```bash
+sudo vim /etc/metricbeat/metricbeat.yml
+```
+```bash
+metricbeat.modules:
+- module: system
+  hosts: ["localhost"]
+  metricsets: ["cpu", "load", "memory", "network", "process", "process.cpu"]
+  period: 10s.
+
+...
+
+output.elasticsearch:
+  hosts: ["localhost:9200"]
+  username: "" #(si pas de login/mot de passe ne rien mettre)
+  password: "" #(si pas de login/mot de passe ne rien mettre)
+
+...
+
+setup.kibana:
+  host: "localhost:5601"
+
+...
+
+# Optionnelle
+metricbeat.config.modules:
+  path: ${path.config}/modules.d/*.yml
+  reload.enabled: true
+  reload.period: 15s
+```
+
+3. **Lancement du service**
+
+```bash
+sudo systemctl enable metricbeat
+sudo service metricbeat restart
+```
+
+4. **Activation du module system** 
+Pour configurer et exécuter le module system, lancez la commande suivante:
+
+```shell
+sudo metricbeat modules enable system
+```
+
+Pour voir la liste des modules activés et désactivés, exécutez :
+
+```shell
+sudo metricbeat modules list
+```
+
+5. **Chargez les tableaux de bord dans kibana**
+
+```bash
+sudo metricbeat setup -e
+```
+
+6. **Chargez le module elasticsearch-xpack**
+```shell
+metricbeat modules enable elasticsearch-xpack
+```
+
+#### Packetbeat
+
+Ce Beat permet de recueillir et d'analyser les données sur réseau.
+
+1. **Installez packetbeat**
+
+```bash
+sudo apt install packetbeat -y
+```
+
+2. **Activez le lancement du service au démarrage** 
+
+```bash
+  sudo systemctl enable packetbeat
+```
+
+3. **Configuration**
+Ouvriz le fichier de configuration de packetbeat.
+
+```bash
+sudo vim /etc/packetbeat/packetbeat.yml
+```
+
+Décommentez ces lignes :
+```shell
+...
+setup.kibana:
+
+  # Kibana Host
+  # Scheme and port can be left out and will be set to the default (http and 5601)
+  # In case you specify and additional path, the scheme is required: http://localhost:5601/path
+  # IPv6 addresses should always be defined as: https://[2001:db8::1]:5601
+  host: "localhost:5601"
+...
+output.elasticsearch:
+  # Array of hosts to connect to.
+  hosts: ["localhost:9200"]
+
+  # Protocol - either `http` (default) or `https`.
+  protocol: "http"
+
+  # Authentication credentials - either API key or username/password.
+  #api_key: "id:api_key"
+  username: ""
+  password: ""
+...
+```
+
+Chargez la configuration de packetbeat :
+
+```shell
+sudo packetbeat setup -e
+```
+
+Si tout s'est bien passé, vous aurez en sortie :
+
+```shell
+...
+2025-03-13T09:59:57.351+0100    INFO    kibana/client.go:180    Kibana url: http://localhost:5601
+2025-03-13T09:59:57.519+0100    INFO    kibana/client.go:180    Kibana url: http://localhost:5601
+2025-03-13T09:59:57.796+0100    INFO    [add_cloud_metadata]    add_cloud_metadata/add_cloud_metadata.go:101    add_cloud_metadata: hosting provider type not detected.
+2025-03-13T10:00:10.988+0100    INFO    instance/beat.go:881    Kibana dashboards successfully loaded.
+Loaded dashboards
+```
+
+Si ce n'est pas le cas, créez l'index depuis la page comme pour metricbeat .
+
+Rendez-vous sur http://localhost:5601/app/management/kibana/indexPatterns/ .
+
+L'index `packetbeat-*` s'est créé lors du chargement de la configuration.
+
+On peut dés à présent consultez le tableau de bord packetbeat pour avoir des données sur le réseau.
+
+![](/home/ivy/snap/marktext/9/.config/marktext/images/2025-03-13-10-21-41-image.png)
+![](/home/ivy/snap/marktext/9/.config/marktext/images/2025-03-13-10-14-16-image.png)
+
+#### Heartbeat
+
+Hearbeat permet de surveiller activement la disponibilité des services.
+
+1. **Installation de Hearbeat**
+
+```shell
+sudo apt install heartbeat-elastic
+```
+
+2. **Configuration**
+
+```shell
+sudo vim /etc/heartbeat/heatbeat.yml
+```
+
+```shell
+...
+
+# Configure monitors inline
+heartbeat.monitors:
+- type: http
+  # Set enabled to true (or delete the following line) to enable this example monitor
+  enabled: false
+  # ID used to uniquely identify this monitor in elasticsearch even if the config changes
+  id: my-monitor
+  # Human readable display name for this service in Uptime UI and elsewhere
+  name: My Monitor
+  # List or urls to query
+  urls: ["http://localhost:9200"]
+  # Configure task schedule
+  schedule: '@every 5s'
+  # Total test connection and data exchange timeout
+  #timeout: 16s
+  # Name of corresponding APM service, if Elastic APM is in use for the monitored service.
+  #service.name: my-apm-service-name
+
+...
+
+# =================================== Kibana ===================================
+
+# Starting with Beats version 6.0.0, the dashboards are loaded via the Kibana API.
+# This requires a Kibana endpoint configuration.
+setup.kibana:
+
+  # Kibana Host
+  # Scheme and port can be left out and will be set to the default (http and 5601)
+  # In case you specify and additional path, the scheme is required: http://localhost:5601/path
+  # IPv6 addresses should always be defined as: https://[2001:db8::1]:5601
+  host: "localhost:5601"
+  username: ""
+  password: ""
+
+...
+
+
+# ---------------------------- Elasticsearch Output ----------------------------
+output.elasticsearch:
+  # Array of hosts to connect to.
+  hosts: ["localhost:9200"]
+
+  # Protocol - either `http` (default) or `https`.
+  protocol: "http"
+
+  # Authentication credentials - either API key or username/password.
+  #api_key: "id:api_key"
+  username: ""
+  password: ""
+
+
+...
+```
+
+Chargez la configuration Heartbeat :
+
+```shell
+heartbeat setup -e
+```
+
+```shell
+2025-03-13T10:46:17.996+0100    INFO    template/load.go:197    Existing template will be overwritten, as overwrite is enabled.
+2025-03-13T10:46:18.079+0100    INFO    template/load.go:131    Try loading template heartbeat-7.17.28 to Elasticsearch
+2025-03-13T10:46:18.206+0100    INFO    template/load.go:123    Template with name "heartbeat-7.17.28" loaded.
+2025-03-13T10:46:18.206+0100    INFO    [index-management]    idxmgmt/std.go:296    Loaded index template.
+2025-03-13T10:46:18.415+0100    INFO    [index-management.ilm]    ilm/std.go:140    Index Alias heartbeat-7.17.28 successfully created.
+Index setup finished.
+```
+
+3. **Lancement du service**
+
+```shell
+sudo systemctl start heartbeat-elastic
+sudo systemctl enable heartbeat-elastic
+```
+
+
+#### Test des Beats sous Kibana
+
+Sur la page `http://localhost:5601/app/management/kibana/indexPatterns/` il devrait y avoir un nouvel index du nom de `metricbeat-*`.
+
+i le chargement à échoué, vous devez créer sur cette même page ("Stack Management" > "Index Patterns") un index du nom de `metricbeat-*` (pas comme sur la capture d'écran).
+
+![](img/2025-03-12-15-27-30-image.png)
+![](img/2025-03-12-15-28-42-image.png)
+Ensuite, aller sur la page Analytics > Discover puis sélectionner l'index créé.
+![](img/2025-03-12-15-32-51-image.png)
+![](/home/ivy/snap/marktext/9/.config/marktext/images/2025-03-13-11-01-59-image.png)
+
+![](/home/ivy/snap/marktext/9/.config/marktext/images/2025-03-13-11-05-24-image.png)
+
+
+## Configuration pour surveiller des conteneurs docker
+
+Prise en main des outils
+
+### Découvrir les logs
+
+**Kibana > Discover**
+
+Il est possible d'ajouter des filtre aux logs.
+
+### Tableau de bord
+
+On peut créer un tableau de bord pour visualiser une collection en temps réel.
+
+**Kibana > Dashboard > Create dashboard**
+
+![](img/2025-03-12-15-40-00-image.png)
+![](img/2025-03-12-15-40-20-image.png)
+
+Exemple d'un dashboard créé :
+![](img/2025-03-12-15-47-02-image.png)
+Il existe beaucoup de dashboard déjà créés.
+
 
 # SURICATA
 
