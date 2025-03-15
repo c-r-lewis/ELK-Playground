@@ -352,7 +352,7 @@ Vérifiez si le module `system` est activé.
 ```bash
 sudo filebeat modules list
 ```
-Configurer la redirection des journaux vers le service elasticsearch.
+Configurez la redirection des journaux vers le service elasticsearch.
 ```bash
 sudo filebeat setup --pipelines --modules system
 ```
@@ -466,7 +466,7 @@ sudo apt install packetbeat -y
 ```
 
 3. **Configuration**
-Ouvriz le fichier de configuration de packetbeat.
+Ouvrez le fichier de configuration de packetbeat.
 
 ```bash
 sudo vim /etc/packetbeat/packetbeat.yml
