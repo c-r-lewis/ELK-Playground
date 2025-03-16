@@ -182,7 +182,7 @@ Kibana offre une interface utilisateur graphique permettant de visualiser et d'a
 
     **`| sudo tee -a /etc/nginx/htpasswd.users`** : Utilise `tee` pour ajouter (avec `-a` pour "append") cette chaîne de texte dans le fichier `/etc/nginx/htpasswd.users`, qui contient les utilisateurs et mots de passe pour l'authentification HTTP de base via Nginx.
 
-2. **Configurer Nginx pour accéder à Kibana via un domaine sécurisé**
+3. **Configurer Nginx pour accéder à Kibana via un domaine sécurisé**
 
    Nous avons configuré Nginx comme un reverse proxy pour Kibana, offrant ainsi un accès sécurisé par mot de passe.
 
@@ -212,7 +212,7 @@ Kibana offre une interface utilisateur graphique permettant de visualiser et d'a
     ```
     On ajoute des directives pour proxy les demandes HTTP vers Kibana et sécuriser l'accès avec une authentification de base dans le fichier.
 
-3. **Activation du site dans Nginx avec un lien symbolique**
+4. **Activation du site dans Nginx avec un lien symbolique**
 
     ```bash
     sudo ln -s /etc/nginx/sites-available/cloud-computing-g3.fr /etc/nginx/sites-enabled/cloud-computing-g3.fr
@@ -224,7 +224,7 @@ Kibana offre une interface utilisateur graphique permettant de visualiser et d'a
 
     **`/etc/nginx/sites-enabled/cloud-computing-g3.fr`** : C'est un lien symbolique qui pointe vers le fichier de configuration dans `sites-available`. Les fichiers dans `sites-enabled` sont ceux que Nginx utilise activement.
 
-3. **Vérifier la syntaxe de la nouvelle configuration Nginx**
+5. **Vérifier la syntaxe de la nouvelle configuration Nginx**
 
     ```bash
     sudo nginx -t
@@ -232,7 +232,7 @@ Kibana offre une interface utilisateur graphique permettant de visualiser et d'a
 
     ![alt text](<img/Configure Nginx.png>)
 
-4. **Recharger Nginx et gérer le pare-feu**
+6. **Recharger Nginx et gérer le pare-feu**
 
     ```bash
     sudo systemctl reload nginx
@@ -243,7 +243,7 @@ Kibana offre une interface utilisateur graphique permettant de visualiser et d'a
     ```
 
 
-5. **Accéder à Kibana**
+7. **Accéder à Kibana**
 
    Après avoir configuré Nginx, on peut accéder à Kibana via l'URL définie dans le fichier de configuration (ici http://cloud-computing-g3.fr/status ou http://localhost:5601).
 
@@ -399,11 +399,11 @@ sudo systemctl enable filebeat
 
 Rendez-vous sur http://localhost:5601/app/management/kibana/indexPatterns/`.
 L'index filebeat-* s'est créé lors du chargement de la configuration. Si ce n'est pas le cas, créez l'indexPatterns.
-On peut dés à présent consulter le tableau de bord filebeat pour avoir des données sur nos fichiers journaux.
+On peut dès à présent consulter le tableau de bord filebeat pour avoir des données sur nos fichiers journaux.
 
 
 #### Metricbeat
-Ce deuxième expéditeur de données collecte des métriques sur les systèmes et les services. recueillir et d'expérdier les fichiers journaux.
+Ce deuxième expéditeur de données collecte des métriques sur les systèmes et les services.
 
 1. **Installation du service**
 
@@ -414,7 +414,7 @@ sudo service metricbeat start
 ```
 
 2. **Configuration du service**
-Commenter ou décommenter les métriques dont vous avez besoin dans `/etc/metricbeat/modules.d/system.yml`.
+Commentez ou décommentez les métriques dont vous avez besoin dans `/etc/metricbeat/modules.d/system.yml`.
 ```bash
 sudo vim /etc/metricbeat/metricbeat.yml
 ```
@@ -481,7 +481,7 @@ metricbeat modules enable elasticsearch-xpack
 
 Rendez-vous sur http://localhost:5601/app/management/kibana/indexPatterns/`.
 L'index metricbeat-* s'est créé lors du chargement de la configuration. Si ce n'est pas le cas, créez l'indexPatterns.
-On peut dés à présent consulter le tableau de bord metricbeat pour avoir des données sur nos systèmes et services.
+On peut dès à présent consulter le tableau de bord metricbeat pour avoir des données sur nos systèmes et services.
 
 
 #### Packetbeat
@@ -553,7 +553,7 @@ Loaded dashboards
 Si ce n'est pas le cas, créez l'index depuis la page comme pour metricbeat.
 Rendez-vous sur `http://localhost:5601/app/management/kibana/indexPatterns/.
 L'index `packetbeat-*` s'est créé lors du chargement de la configuration.
-On peut dés à présent consultez le tableau de bord packetbeat pour avoir des données sur le réseau.
+On peut dès à présent consultez le tableau de bord packetbeat pour avoir des données sur le réseau.
 
 #### Heartbeat
 
@@ -653,7 +653,7 @@ sudo systemctl enable heartbeat-elastic
 4. **Vérification**
 Comme précédemment, rendez-vous sur http://localhost:5601/app/management/kibana/indexPatterns/`.
 L'index heartbeat-* s'est créé lors du chargement de la configuration. Si ce n'est pas le cas, créez l'indexPatterns.
-On peut dés à présent consulter le tableau de bord de heartbeat pour surveiller activement la disponibilité des services.
+On peut dès à présent consulter le tableau de bord de heartbeat pour surveiller activement la disponibilité des services.
 
 #### Test des Beats sous Kibana
 
@@ -676,7 +676,7 @@ Prise en main des outils
 
 **Kibana > Discover**
 
-Il est possible d'ajouter des filtre aux logs.
+Il est possible d'ajouter des filtres aux logs.
 
 ### Tableau de bord
 
@@ -689,7 +689,7 @@ On peut créer un tableau de bord pour visualiser une collection en temps réel.
 
 Exemple d'un dashboard créé :
 ![](img/DashboardKibana3.png)
-Il existe beaucoup de dashboard déjà créés.
+Il existe beaucoup de dashboard déjà créé.
 
 
 # SURICATA
