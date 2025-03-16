@@ -373,9 +373,15 @@ setup.kibana.host=localhost:5601
 sudo systemctl start filebeat
 sudo systemctl enable filebeat
 ```
+5. **Vérification**
+
+Rendez-vous sur http://localhost:5601/app/management/kibana/indexPatterns/`.
+L'index filebeat-* s'est créé lors du chargement de la configuration. Si ce n'est pas le cas, créez l'indexPatterns.
+On peut dés à présent consulter le tableau de bord filebeat pour avoir des données sur nos fichiers journaux.
+
 
 #### Metricbeat
-Ce deuxième expéditeur de données collecte des métriques sur les systèmes et les services.
+Ce deuxième expéditeur de données collecte des métriques sur les systèmes et les services. recueillir et d'expérdier les fichiers journaux.
 
 1. **Installation du service**
 
@@ -438,16 +444,23 @@ Pour voir la liste des modules activés et désactivés, exécutez :
 sudo metricbeat modules list
 ```
 
-5. **Chargez les tableaux de bord dans kibana**
+5. **Chargement des tableaux de bord dans kibana**
 
 ```bash
 sudo metricbeat setup -e
 ```
 
-6. **Chargez le module elasticsearch-xpack**
+6. **Chargement du module elasticsearch-xpack**
 ```shell
 metricbeat modules enable elasticsearch-xpack
 ```
+
+7. **Vérification**
+
+Rendez-vous sur http://localhost:5601/app/management/kibana/indexPatterns/`.
+L'index metricbeat-* s'est créé lors du chargement de la configuration. Si ce n'est pas le cas, créez l'indexPatterns.
+On peut dés à présent consulter le tableau de bord metricbeat pour avoir des données sur nos systèmes et services.
+
 
 #### Packetbeat
 
@@ -514,12 +527,10 @@ Si tout s'est bien passé, vous aurez en sortie :
 Loaded dashboards
 ```
 
-Si ce n'est pas le cas, créez l'index depuis la page comme pour metricbeat .
-
-Rendez-vous sur http://localhost:5601/app/management/kibana/indexPatterns/ .
-
+4. **Vérification**
+Si ce n'est pas le cas, créez l'index depuis la page comme pour metricbeat.
+Rendez-vous sur `http://localhost:5601/app/management/kibana/indexPatterns/.
 L'index `packetbeat-*` s'est créé lors du chargement de la configuration.
-
 On peut dés à présent consultez le tableau de bord packetbeat pour avoir des données sur le réseau.
 
 ![](/home/ivy/snap/marktext/9/.config/marktext/images/2025-03-13-10-21-41-image.png)
