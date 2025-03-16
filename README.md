@@ -533,9 +533,6 @@ Rendez-vous sur `http://localhost:5601/app/management/kibana/indexPatterns/.
 L'index `packetbeat-*` s'est créé lors du chargement de la configuration.
 On peut dés à présent consultez le tableau de bord packetbeat pour avoir des données sur le réseau.
 
-![](/home/ivy/snap/marktext/9/.config/marktext/images/2025-03-13-10-21-41-image.png)
-![](/home/ivy/snap/marktext/9/.config/marktext/images/2025-03-13-10-14-16-image.png)
-
 #### Heartbeat
 
 Hearbeat permet de surveiller activement la disponibilité des services.
@@ -631,21 +628,23 @@ sudo systemctl start heartbeat-elastic
 sudo systemctl enable heartbeat-elastic
 ```
 
+4. **Vérification**
+Comme précédemment, rendez-vous sur http://localhost:5601/app/management/kibana/indexPatterns/`.
+L'index heartbeat-* s'est créé lors du chargement de la configuration. Si ce n'est pas le cas, créez l'indexPatterns.
+On peut dés à présent consulter le tableau de bord de heartbeat pour surveiller activement la disponibilité des services.
 
 #### Test des Beats sous Kibana
 
-Sur la page `http://localhost:5601/app/management/kibana/indexPatterns/` il devrait y avoir un nouvel index du nom de `metricbeat-*`.
+Sur la page `http://localhost:5601/app/management/kibana/indexPatterns/` il devrait y avoir un nouvel index du nom de `[beat]-*`.
+Si le chargement de la configuration a échoué, vous devez créer sur cette même page ("Stack Management" > "Index Patterns") un index du nom de `metricbeat-*` (pas comme sur la capture d'écran).
 
-i le chargement à échoué, vous devez créer sur cette même page ("Stack Management" > "Index Patterns") un index du nom de `metricbeat-*` (pas comme sur la capture d'écran).
-
-![](img/2025-03-12-15-27-30-image.png)
-![](img/2025-03-12-15-28-42-image.png)
+![](img/BeatAndKibana1.png)
+![](img/BeatAndKibana2.png)
 Ensuite, aller sur la page Analytics > Discover puis sélectionner l'index créé.
-![](img/2025-03-12-15-32-51-image.png)
-![](/home/ivy/snap/marktext/9/.config/marktext/images/2025-03-13-11-01-59-image.png)
+![](img/BeatAndKibana3.png)
 
-![](/home/ivy/snap/marktext/9/.config/marktext/images/2025-03-13-11-05-24-image.png)
-
+![](img/BeatAndKibana4.png)
+![](img/BeatAndKibana5.png)
 
 ## Configuration pour surveiller des conteneurs docker
 
@@ -663,11 +662,11 @@ On peut créer un tableau de bord pour visualiser une collection en temps réel.
 
 **Kibana > Dashboard > Create dashboard**
 
-![](img/2025-03-12-15-40-00-image.png)
-![](img/2025-03-12-15-40-20-image.png)
+![](img/DashboardKibana1.png)
+![](img/DashboardKibana2.png)
 
 Exemple d'un dashboard créé :
-![](img/2025-03-12-15-47-02-image.png)
+![](img/DashboardKibana3.png)
 Il existe beaucoup de dashboard déjà créés.
 
 
